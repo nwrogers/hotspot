@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/down_button.png</file>
+        <file>images/folder_icon.png</file>
+        <file>images/hotspot_logo.png</file>
+        <file>images/results_icon.png</file>
+        <file>images/right_button.png</file>
+        <file>images/settings_icon.png</file>
+        <file>images/start_icon.png</file>
+        <file>images/loading_icon.gif</file>
+    </qresource>
+</RCC>
