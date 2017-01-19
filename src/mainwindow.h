@@ -1,5 +1,5 @@
 /*
-  hotspot.h
+  mainwindow.h
 
   This file is part of Hotspot, the Qt GUI for performance analysis.
 
@@ -27,15 +27,39 @@
 
 #pragma once
 
-#include <QObject>
+#include <QMainWindow>
+#include <QScopedPointer>
+#include <QMovie>
 
-class Hotspot : public QObject
+namespace Ui {
+class MainWindow;
+}
+
+class CostModel;
+class PerfParser;
+
+class MainWindow : public QMainWindow
 {
     Q_OBJECT
+
 public:
-    Hotspot(QObject* parent = nullptr);
-    ~Hotspot();
+    explicit MainWindow(QWidget *parent = 0);
+    ~MainWindow();
 
 public slots:
     void openFile(const QString& path);
+
+private slots:
+    void on_openFileButton_clicked();
+    void on_startButton_clicked();
+    void on_resultsButton_clicked();
+
+private:
+    Ui::MainWindow *ui;
+    CostModel* m_bottomUpCostModel;
+    PerfParser* m_parser;
+    QMovie *m_LoadingResultsMovie;
+
+    void showLoadingResults();
+    void hideLoadingResults();
 };

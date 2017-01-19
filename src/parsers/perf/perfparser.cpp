@@ -32,6 +32,7 @@
 #include <QtEndian>
 #include <QBuffer>
 #include <QDataStream>
+#include <QFileInfo>
 
 #include "util.h"
 
@@ -39,12 +40,30 @@
 
 namespace {
 
+struct StringId
+{
+    qint32 id = -1;
+};
+
+QDataStream& operator>>(QDataStream& stream, StringId& stringId)
+{
+    return stream >> stringId.id;
+}
+
+QDebug operator<<(QDebug stream, const StringId& stringId)
+{
+    stream.noquote().nospace() << "String{"
+        << "id=" << stringId.id
+        << "}";
+    return stream;
+}
+
 struct Command
 {
     quint32 pid = 0;
     quint32 tid = 0;
     quint64 time = 0;
-    QByteArray comm;
+    StringId comm;
 };
 
 QDataStream& operator>>(QDataStream& stream, Command& command)
@@ -52,7 +71,8 @@ QDataStream& operator>>(QDataStream& stream, Command& command)
     return stream >> command.pid >> command.tid >> command.time >> command.comm;
 }
 
-QDebug operator<<(QDebug stream, const Command& command) {
+QDebug operator<<(QDebug stream, const Command& command)
+{
     stream.noquote().nospace() << "Command{"
         << "pid=" << command.pid << ", "
         << "tid=" << command.tid << ", "
@@ -74,7 +94,8 @@ QDataStream& operator>>(QDataStream& stream, ThreadStart& threadStart)
     return stream >> threadStart.childPid >> threadStart.childTid >> threadStart.time;
 }
 
-QDebug operator<<(QDebug stream, const ThreadStart& threadStart) {
+QDebug operator<<(QDebug stream, const ThreadStart& threadStart)
+{
     stream.noquote().nospace() << "ThreadStart{"
         << "childPid=" << threadStart.childPid << ", "
         << "childTid=" << threadStart.childTid << ", "
@@ -95,7 +116,8 @@ QDataStream& operator>>(QDataStream& stream, ThreadEnd& threadEnd)
     return stream >> threadEnd.childPid >> threadEnd.childTid >> threadEnd.time;
 }
 
-QDebug operator<<(QDebug stream, const ThreadEnd& threadEnd) {
+QDebug operator<<(QDebug stream, const ThreadEnd& threadEnd)
+{
     stream.noquote().nospace() << "ThreadEnd{"
         << "childPid=" << threadEnd.childPid << ", "
         << "childTid=" << threadEnd.childTid << ", "
@@ -107,7 +129,7 @@ QDebug operator<<(QDebug stream, const ThreadEnd& threadEnd) {
 struct Location
 {
     quint64 address = 0;
-    QByteArray file;
+    StringId file;
     quint32 pid = 0;
     qint32 line = 0;
     qint32 column = 0;
@@ -121,7 +143,8 @@ QDataStream& operator>>(QDataStream& stream, Location& location)
         >> location.column >> location.parentLocationId;
 }
 
-QDebug operator<<(QDebug stream, const Location& location) {
+QDebug operator<<(QDebug stream, const Location& location)
+{
     stream.noquote().nospace() << "Location{"
         << "address=0x" << hex << location.address << dec << ", "
         << "file=" << location.file << ", "
@@ -135,25 +158,18 @@ QDebug operator<<(QDebug stream, const Location& location) {
 
 struct LocationDefinition
 {
-    quint32 pid = 0;
-    quint32 tid = 0;
-    quint64 time = 0;
     qint32 id = 0;
     Location location;
 };
 
 QDataStream& operator>>(QDataStream& stream, LocationDefinition& locationDefinition)
 {
-    return stream >> locationDefinition.pid >> locationDefinition.tid
-        >> locationDefinition.time >> locationDefinition.id
-        >> locationDefinition.location;
+    return stream >> locationDefinition.id >> locationDefinition.location;
 }
 
-QDebug operator<<(QDebug stream, const LocationDefinition& locationDefinition) {
+QDebug operator<<(QDebug stream, const LocationDefinition& locationDefinition)
+{
     stream.noquote().nospace() << "LocationDefinition{"
-        << "pid=" << locationDefinition.pid << ", "
-        << "tid=" << locationDefinition.tid << ", "
-        << "time=" << locationDefinition.time << ", "
         << "id=" << locationDefinition.id << ", "
         << "location=" << locationDefinition.location
         << "}";
@@ -162,8 +178,8 @@ QDebug operator<<(QDebug stream, const LocationDefinition& locationDefinition) {
 
 struct Symbol
 {
-    QByteArray name;
-    QByteArray binary;
+    StringId name;
+    StringId binary;
     bool isKernel = false;
 };
 
@@ -172,7 +188,8 @@ QDataStream& operator>>(QDataStream& stream, Symbol& symbol)
     return stream >> symbol.name >> symbol.binary >> symbol.isKernel;
 }
 
-QDebug operator<<(QDebug stream, const Symbol& symbol) {
+QDebug operator<<(QDebug stream, const Symbol& symbol)
+{
     stream.noquote().nospace() << "Symbol{"
         << "name=" << symbol.name << ", "
         << "binary=" << symbol.binary << ", "
@@ -183,25 +200,18 @@ QDebug operator<<(QDebug stream, const Symbol& symbol) {
 
 struct SymbolDefinition
 {
-    quint32 pid = 0;
-    quint32 tid = 0;
-    quint64 time = 0;
     qint32 id = 0;
     Symbol symbol;
 };
 
 QDataStream& operator>>(QDataStream& stream, SymbolDefinition& symbolDefinition)
 {
-    return stream >> symbolDefinition.pid >> symbolDefinition.tid
-        >> symbolDefinition.time >> symbolDefinition.id
-        >> symbolDefinition.symbol;
+    return stream >> symbolDefinition.id >> symbolDefinition.symbol;
 }
 
-QDebug operator<<(QDebug stream, const SymbolDefinition& symbolDefinition) {
+QDebug operator<<(QDebug stream, const SymbolDefinition& symbolDefinition)
+{
     stream.noquote().nospace() << "SymbolDefinition{"
-        << "pid=" << symbolDefinition.pid << ", "
-        << "tid=" << symbolDefinition.tid << ", "
-        << "time=" << symbolDefinition.time << ", "
         << "id=" << symbolDefinition.id << ", "
         << "symbol=" << symbolDefinition.symbol
         << "}";
@@ -225,7 +235,8 @@ QDataStream& operator>>(QDataStream& stream, Sample& sample)
         >> sample.attributeId;
 }
 
-QDebug operator<<(QDebug stream, const Sample& sample) {
+QDebug operator<<(QDebug stream, const Sample& sample)
+{
     stream.noquote().nospace() << "Sample{"
         << "pid=" << sample.pid << ", "
         << "tid=" << sample.tid << ", "
@@ -233,6 +244,26 @@ QDebug operator<<(QDebug stream, const Sample& sample) {
         << "frames=" << sample.frames << ", "
         << "guessedFrames=" << sample.guessedFrames << ", "
         << "attributeId=" << sample.attributeId
+        << "}";
+    return stream;
+}
+
+struct StringDefinition
+{
+    qint32 id = 0;
+    QByteArray string;
+};
+
+QDataStream& operator>>(QDataStream& stream, StringDefinition& stringDefinition)
+{
+    return stream >> stringDefinition.id >> stringDefinition.string;
+}
+
+QDebug operator<<(QDebug stream, const StringDefinition& stringDefinition)
+{
+    stream.noquote().nospace() << "StringDefinition{"
+        << "id=" << stringDefinition.id << ", "
+        << "string=" << stringDefinition.string
         << "}";
     return stream;
 }
@@ -262,23 +293,28 @@ struct SymbolData
     }
 };
 
-struct ParserData
+}
+
+struct PerfParserPrivate
 {
-    ParserData()
+    PerfParserPrivate()
     {
         buffer.buffer().reserve(1024);
         buffer.open(QIODevice::ReadOnly);
         stream.setDevice(&buffer);
+        process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+        parserBinary = Util::findLibexecBinary(QStringLiteral("hotspot-perfparser"));
     }
-    bool tryParse (QProcess *process)
+
+    bool tryParse()
     {
-        const auto bytesAvailable = process->bytesAvailable();
+        const auto bytesAvailable = process.bytesAvailable();
         switch (state) {
             case HEADER: {
                 const auto magic = QLatin1String("QPERFSTREAM");
                 // + 1 to include the trailing \0
                 if (bytesAvailable >= magic.size() + 1) {
-                    process->read(buffer.buffer().data(), magic.size() + 1);
+                    process.read(buffer.buffer().data(), magic.size() + 1);
                     if (buffer.buffer().data() != magic) {
                         state = PARSE_ERROR;
                         qWarning() << "Failed to read header magic";
@@ -293,7 +329,7 @@ struct ParserData
             case DATA_STREAM_VERSION: {
                 qint32 dataStreamVersion = 0;
                 if (bytesAvailable >= sizeof(dataStreamVersion)) {
-                    process->read(buffer.buffer().data(), sizeof(dataStreamVersion));
+                    process.read(buffer.buffer().data(), sizeof(dataStreamVersion));
                     dataStreamVersion = qFromLittleEndian(*reinterpret_cast<qint32*>(buffer.buffer().data()));
                     stream.setVersion(dataStreamVersion);
                     qDebug() << "data stream version is:" << dataStreamVersion;
@@ -304,16 +340,17 @@ struct ParserData
             }
             case EVENT_HEADER:
                 if (bytesAvailable >= sizeof(eventSize)) {
-                    process->read(buffer.buffer().data(), sizeof(eventSize));
+                    process.read(buffer.buffer().data(), sizeof(eventSize));
                     eventSize = qFromLittleEndian(*reinterpret_cast<quint32*>(buffer.buffer().data()));
                     qDebug() << "next event size is:" << eventSize;
                     state = EVENT;
                     return true;
                 }
+                break;
             case EVENT:
                 if (bytesAvailable >= eventSize) {
                     buffer.buffer().resize(eventSize);
-                    process->read(buffer.buffer().data(), eventSize);
+                    process.read(buffer.buffer().data(), eventSize);
                     if (!parseEvent()) {
                         state = PARSE_ERROR;
                         return false;
@@ -322,6 +359,7 @@ struct ParserData
                     state = EVENT_HEADER;
                     return true;
                 }
+                break;
             case PARSE_ERROR:
                 // do nothing
                 break;
@@ -392,6 +430,13 @@ struct ParserData
             case AttributesDefinition:
                 // TODO
                 break;
+            case StringDefinition: {
+                struct StringDefinition stringDefinition;
+                stream >> stringDefinition;
+                qDebug() << "parsed:" << stringDefinition;
+                addString(stringDefinition);
+                break;
+            }
             case InvalidType:
                 break;
         }
@@ -424,8 +469,8 @@ struct ParserData
         Q_ASSERT(locations.size() == location.id);
         Q_ASSERT(symbols.size() == location.id);
         QString locationString;
-        if (!location.location.file.isEmpty()) {
-            locationString = QString::fromUtf8(location.location.file);
+        if (location.location.file.id != -1) {
+            locationString = strings.value(location.location.file.id);
             if (location.location.line != -1) {
                 locationString += QLatin1Char(':') + QString::number(location.location.line);
             }
@@ -444,8 +489,8 @@ struct ParserData
         // TODO: store binary, isKernel information
         Q_ASSERT(symbols.size() > symbol.id);
         symbols[symbol.id] = {
-            QString::fromUtf8(symbol.symbol.name),
-            QString::fromUtf8(symbol.symbol.binary)
+            strings.value(symbol.symbol.name.id),
+            strings.value(symbol.symbol.binary.id)
         };
     }
 
@@ -507,6 +552,12 @@ struct ParserData
         return ret;
     }
 
+    void addString(const StringDefinition& string)
+    {
+        Q_ASSERT(string.id == strings.size());
+        strings.push_back(QString::fromUtf8(string.string));
+    }
+
     enum State {
         HEADER,
         DATA_STREAM_VERSION,
@@ -523,6 +574,7 @@ struct ParserData
         LocationDefinition,
         SymbolDefinition,
         AttributesDefinition,
+        StringDefinition,
         InvalidType
     };
 
@@ -533,53 +585,68 @@ struct ParserData
     FrameData result;
     QVector<SymbolData> symbols;
     QVector<LocationData> locations;
+    QVector<QString> strings;
+    QProcess process;
+    QString parserBinary;
 };
-
-}
 
 Q_DECLARE_TYPEINFO(LocationData, Q_MOVABLE_TYPE);
 Q_DECLARE_TYPEINFO(SymbolData, Q_MOVABLE_TYPE);
 
 PerfParser::PerfParser(QObject* parent)
     : QObject(parent)
+    , d(new PerfParserPrivate)
 {
-}
-
-PerfParser::~PerfParser() = default;
-
-FrameData PerfParser::parseFile(const QString& path)
-{
-    const auto parser = Util::findLibexecBinary(QStringLiteral("hotspot-perfparser"));
-    if (parser.isEmpty()) {
-        qWarning() << "Failed to find hotspot-perfparser binary.";
-        return {};
-    }
-
-    QProcess parserProcess;
-    parserProcess.setProcessChannelMode(QProcess::ForwardedErrorChannel);
-
-    ParserData data;
-    connect(&parserProcess, &QProcess::readyRead,
-            [&data, &parserProcess] {
-                while (data.tryParse(&parserProcess)) {
+    connect(&d->process, &QProcess::readyRead,
+            [this] {
+                while (d->tryParse()) {
                     // just call tryParse until it fails
                 }
             });
 
-    parserProcess.start(parser, {QStringLiteral("--input"), path});
-    if (!parserProcess.waitForStarted()) {
-        qWarning() << "Failed to start hotspot-perfparser binary" << parser;
-        return {};
+    connect(&d->process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+            [this] (int exitCode, QProcess::ExitStatus exitStatus) {
+                qDebug() << exitCode << exitStatus;
+
+                if (exitCode == EXIT_SUCCESS) {
+                    d->finalize();
+                    emit bottomUpDataAvailable(d->result);
+                    emit parsingFinished();
+                } else {
+                    emit parsingFailed(tr("The hotspot-perfparser binary exited with code %1.").arg(exitCode));
+                }
+            });
+
+    connect(&d->process, &QProcess::errorOccurred,
+            [this] (QProcess::ProcessError error) {
+                qWarning() << error << d->process.errorString();
+
+                emit parsingFailed(d->process.errorString());
+            });
+}
+
+PerfParser::~PerfParser() = default;
+
+void PerfParser::startParseFile(const QString& path)
+{
+    QFileInfo info(path);
+    if (!info.exists()) {
+        emit parsingFailed(tr("File '%1' does not exist.").arg(path));
+        return;
+    }
+    if (!info.isFile()) {
+        emit parsingFailed(tr("'%1' is not a file.").arg(path));
+        return;
+    }
+    if (!info.isReadable()) {
+        emit parsingFailed(tr("File '%1' is not readable.").arg(path));
+        return;
     }
 
-    if (!parserProcess.waitForFinished()) {
-        qWarning() << "Failed to finish hotspot-perfparser:" << parserProcess.errorString();
-        return {};
+    if (d->parserBinary.isEmpty()) {
+        emit parsingFailed(tr("Failed to find hotspot-perfparser binary."));
+        return;
     }
 
-    Q_ASSERT(data.state == ParserData::PARSE_ERROR || !parserProcess.bytesAvailable());
-
-    data.finalize();
-
-    return data.result;
+    d->process.start(d->parserBinary, {QStringLiteral("--input"), path});
 }
