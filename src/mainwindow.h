@@ -29,6 +29,9 @@
 
 #include <QMainWindow>
 #include <QScopedPointer>
+#include <QString>
+
+#include "models/framedata.h"
 
 namespace Ui {
 class MainWindow;
@@ -60,4 +63,7 @@ private:
 
     void showLoadingResults();
     void hideLoadingResults();
+
+    QString formatTimeString(quint64 nanoseconds);
+    void setTopHotspots(const FrameData& data);
 };

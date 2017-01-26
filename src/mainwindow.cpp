@@ -33,9 +33,9 @@
 #include <QSortFilterProxyModel>
 
 #include "models/costmodel.h"
-#include "models/framedata.h"
 #include "parsers/perf/perfparser.h"
 #include "flamegraph.h"
+#include "models/summarydata.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -60,6 +60,14 @@ MainWindow::MainWindow(QWidget *parent) :
             this, [this] (const FrameData& data) {
                 m_bottomUpCostModel->setData(data);
                 ui->flameGraph->setBottomUpData(data);
+                setTopHotspots(data);
+            });
+
+    connect(m_parser, &PerfParser::summaryDataAvailable,
+            this, [this] (const SummaryData& data) {
+                ui->appRunTimeValue->setText(formatTimeString(data.applicationRunningTime));
+                ui->threadCountValue->setText(QString::number(data.threadCount));
+                ui->processCountValue->setText(QString::number(data.processCount));
             });
 
     hideLoadingResults();
@@ -122,3 +130,43 @@ void MainWindow::hideLoadingResults()
     ui->openFileProgressBar->hide();
     ui->loadingResultsLabel->hide();
 }
+
+QString MainWindow::formatTimeString(quint64 nanoseconds)
+{
+    quint64 totalSeconds = nanoseconds / 1000000000;
+
+    QString days = QString::number(totalSeconds / 60 / 60 / 24).rightJustified(2, '0');
+    QString hours = QString::number((totalSeconds / 60 / 60) % 24).rightJustified(2, '0');
+    QString minutes = QString::number((totalSeconds / 60) % 60).rightJustified(2, '0');
+    QString seconds = QString::number(totalSeconds % 60).rightJustified(2, '0');
+    QString milliseconds = QString::number((nanoseconds / 1000000) % 1000).rightJustified(3, '0');
+
+    return (days == "00" ? "" : days + ":")
+           + (hours == "00" ? "" : hours + ":")
+           + (minutes == "00" ? "" : minutes + ":")
+           + seconds + "." + milliseconds;
+}
+
+bool compareHotspotsBySelfCost(FrameData dataA, FrameData dataB)
+{
+    return dataA.selfCost > dataB.selfCost;
+}
+
+void MainWindow::setTopHotspots(const FrameData& data)
+{
+    int numberOfTopHotspots = 6;
+
+    // Sort and format the top hotspots
+    QVector<FrameData> orderedHotspotVector = data.children;
+    qSort(orderedHotspotVector.begin(), orderedHotspotVector.end(), compareHotspotsBySelfCost);
+    orderedHotspotVector.remove(numberOfTopHotspots, orderedHotspotVector.count() - numberOfTopHotspots);
+
+    // Add each hotspot to the UI
+    for (FrameData frame : orderedHotspotVector) {
+        ui->topHotspotsGridLayout->addWidget(new QLabel(frame.symbol, this));
+        ui->topHotspotsGridLayout->addWidget(new QLabel(frame.binary, this));
+        ui->topHotspotsGridLayout->addWidget(new QLabel(QString::number(frame.selfCost), this));
+    }
+}
+
+

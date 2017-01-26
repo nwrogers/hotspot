@@ -1,10 +1,10 @@
 /*
-  perfparser.h
+  summarydata.h
 
   This file is part of Hotspot, the Qt GUI for performance analysis.
 
   Copyright (C) 2016-2017 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com
-  Author: Milian Wolff <milian.wolff@kdab.com>
+  Author: Nate Rogers <nate.rogers@kdab.com>
 
   Licensees holding valid commercial KDAB Hotspot licenses may use this file in
   accordance with Hotspot Commercial License Agreement provided with the Software.
@@ -27,32 +27,15 @@
 
 #pragma once
 
-#include <QObject>
-#include <memory>
+#include <QVector>
 
-struct PerfParserPrivate;
-struct FrameData;
-struct SummaryData;
-
-// TODO: create a parser interface
-class PerfParser : public QObject
+struct SummaryData
 {
-    Q_OBJECT
-public:
-    PerfParser(QObject* parent = nullptr);
-    ~PerfParser();
-
-    void startParseFile(const QString& path);
-
-signals:
-    void bottomUpDataAvailable(const FrameData& data);
-    // TODO: top-down data
-    // TODO: caller/callee data
-    // TODO: progress bar
-    void summaryDataAvailable(const SummaryData& data);
-    void parsingFinished();
-    void parsingFailed(const QString& errorMessage);
-
-private:
-    std::unique_ptr<PerfParserPrivate> d;
+    quint64 applicationRunningTime;
+    quint32 threadCount;
+    quint32 processCount;
 };
+
+Q_DECLARE_TYPEINFO(SummaryData, Q_MOVABLE_TYPE);
+
+
